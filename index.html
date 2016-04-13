@@ -1,0 +1,106 @@
+﻿<html>
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.3/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-jcrop/0.9.12/js/jquery.Jcrop.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-jcrop/0.9.12/css/jquery.Jcrop.min.css">
+</head>
+<body>
+<input id="imageFile" type="file"/><br/>
+<div id="imageContainer">
+    <img id="imageUploaded"/>
+</div>
+<!--<img src="naruto.png" id="rawImage"/>-->
+<!--<script>var rawImage = $("#rawImage").Jcrop({}, function(){});</script>-->
+<button id="resizeImage">resize</button>
+<div style="border: 1px solid black; pading: 10px">
+    <canvas id="uniCanvas"></canvas>
+</div>
+<button id="uploadResizedImage">upload to server</button>
+<script>
+    //demo on JcropAPI
+    var ACCEPT_WIDTH = 511;
+    var ACCEPT_HEIGHT = 511;
+    var selectArea = [];
+    var canvas = $("#uniCanvas");
+    $("#resizeImage").on("click", function(){
+        resizeImage();
+    });
+    $("#uploadResizedImage").on("click", function(){
+        uploadResizedImage();
+    });
+    var imageContainer = $("#imageContainer");
+    $("#imageFile").on('change', function(){
+        if(typeof (FileReader) != "undefined"){
+            var reader = new FileReader();
+            reader.onload = function(e){
+                //new image uploaded, clear the old one
+                imageContainer.empty();
+                //create new  image uploaded
+                var imageUploaded = $("<img>");
+                //get image source
+                var imageSource = e.target.result;
+                //add src, id to image uploaded
+                imageUploaded.attr("id", "imageUploaded");
+                imageUploaded.attr("src", imageSource);
+                //append to image container
+                imageUploaded.appendTo(imageContainer);
+                imageUploaded.Jcrop({
+                    bgColor: 'black',
+                    bgOpacity: .4,
+                    minSize: [511, 511],
+                    maxSize: [511, 511],
+                    setSelect: [0, 0, 511, 511],
+                    aspectRatio: 1,
+                    onSelect: getCoords
+                });
+                imageUploaded.on("load", function(){
+                    if(imageUploaded.width() < ACCEPT_WIDTH || $(imageUploaded).height() < ACCEPT_HEIGHT){
+                        imageContainer.empty();
+                        window.alert(
+                                "imageUploaded: discarded, ACCEPT_WIDTH: " + ACCEPT_WIDTH + ",ACCEPT_HEIGHT: " + ACCEPT_HEIGHT);
+                    }
+                });
+            };
+            reader.readAsDataURL($(this)[0].files[0]);
+        }else{
+            alert("This browser does not support FileReader.");
+        }
+    });
+    function resizeImage(){
+        if(selectArea){
+            /**@warn NEED selectArea from getCoordsd */
+            var canvas = document.querySelector('#uniCanvas');
+            var ctx = canvas.getContext('2d');
+            var img = document.querySelector("#imageUploaded");
+
+            canvas.width = selectArea.w;
+            canvas.height = selectArea.h;
+            console.log("resize image by canvas", selectArea);
+            ctx.drawImage(img, selectArea.x, selectArea.y, selectArea.w, selectArea.h, 0, 0, selectArea.w,
+                    selectArea.h);
+        }else{
+            window.prompt("select before drop");
+        }
+    }
+    function getCoords(c){
+        selectArea = c;
+        console.log(selectArea);
+    }
+    function uploadResizedImage(){
+        var canvas = document.querySelector("#uniCanvas");
+        var dataURL = canvas.toDataURL();
+        console.log("upload to server, dataURL: %s", dataURL);
+        var url = "server side, please handle me";
+        $.ajax({
+            type: "POST",
+            url: url,
+            data: {
+                imgBase64: dataURL
+            }
+        }).done(function(response) {
+            console.log(response);
+        });
+    }
+</script>
+</body>
+</html>
